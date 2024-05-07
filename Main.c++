@@ -3,13 +3,40 @@
 
 const int size = 3;
 
-char board[size][size];
-char bot = 'X', player = 'O', turn;
-bool isOver = false;
-
-class Check
+class Game
 {
-public:
+private:
+    char board[size][size];
+    char *boardPtr = (char *)board;
+    char bot, player, turn;
+    int bwin = 0, pwin = 0;
+    bool isOver = false;
+
+    void initialize()
+    {
+        int position = 49;
+
+        for (int i = 0; i < size * size; i++)
+        {
+            *(boardPtr + i) = position;
+            position++;
+        }
+    }
+
+    void print()
+    {
+        for (int i = 0; i < size * size; i++)
+        {
+            std::cout << "|";
+            std::cout << *(boardPtr + i) << "|";
+            if ((i + 1) % size == 0)
+            {
+                std::cout << std::endl;
+                std::cout << "+-++-++-+" << std::endl;
+            }
+        }
+    }
+
     bool isInRange(char s)
     {
         if (s >= '/' &&
@@ -39,11 +66,6 @@ public:
             }
         }
 
-        // col
-        for (int i = 0; i < size; i++)
-        {
-        }
-
         // cross
         if (board[0][0] == board[1][1] &&
             board[1][1] == board[2][2])
@@ -58,32 +80,23 @@ public:
             return board[0][2];
         }
 
-        for (int i = 0; i < size; ++i)
+        for (int i = 0; i < size * size; i++)
         {
-            for (int j = 0; j < size; ++j)
+            if (*(boardPtr + i) != player &&
+                *(boardPtr + i) != bot)
             {
-                if (board[i][j] != player &&
-                    board[i][j] != bot)
-                {
-                    isOver = false;
-                    return ',';
-                }
+                isOver = false;
+                return ',';
             }
         }
 
         isOver = true;
         return '.';
     }
-};
 
-class Move
-{
-Check check;
-
-public:
     int evaluate()
     {
-        char winner = check.gameOver();
+        char winner = gameOver();
         if (winner == player)
             return -10;
         else if (winner == bot)
@@ -93,28 +106,25 @@ public:
 
     int minimax(char b[][size], int depth, bool isMaxmizing)
     {
-        check.gameOver();
+        gameOver();
         if (isOver)
             return evaluate();
 
         if (isMaxmizing)
         {
             int bestScore = INT_MIN;
-            for (int i = 0; i < size; ++i)
+            for (int i = 0; i < size * size; i++)
             {
-                for (int j = 0; j < size; ++j)
+                if (isInRange(*(boardPtr + i)))
                 {
-                    if (check.isInRange(b[i][j]))
-                    {
-                        char temp = b[i][j];
-                        b[i][j] = bot;
-                        int score = minimax(
-                            b,
-                            depth + 1,
-                            false);
-                        b[i][j] = temp;
-                        bestScore = std::max(score, bestScore);
-                    }
+                    char temp = *(boardPtr + i);
+                    *(boardPtr + i) = bot;
+                    int score = minimax(
+                        b,
+                        depth + 1,
+                        false);
+                    *(boardPtr + i) = temp;
+                    bestScore = std::max(score, bestScore);
                 }
             }
             return bestScore;
@@ -122,21 +132,18 @@ public:
         else
         {
             int bestScore = INT_MAX;
-            for (int i = 0; i < size; ++i)
+            for (int i = 0; i < size * size; i++)
             {
-                for (int j = 0; j < size; ++j)
+                if (isInRange(*(boardPtr + i)))
                 {
-                    if (check.isInRange(b[i][j]))
-                    {
-                        char temp = b[i][j];
-                        b[i][j] = player;
-                        int score = minimax(
-                            b,
-                            depth + 1,
-                            true);
-                        b[i][j] = temp;
-                        bestScore = std::min(score, bestScore);
-                    }
+                    char temp = *(boardPtr + i);
+                    *(boardPtr + i) = player;
+                    int score = minimax(
+                        b,
+                        depth + 1,
+                        true);
+                    *(boardPtr + i) = temp;
+                    bestScore = std::min(score, bestScore);
                 }
             }
             return bestScore;
@@ -149,59 +156,22 @@ public:
         int bestScore = -1;
         std::pair<int, int> bestMove = {-1, -1};
 
-        for (int i = 0; i < size; ++i)
+        for (int i = 0; i < size * size; i++)
         {
-            for (int j = 0; j < size; ++j)
+            if (isInRange(*(boardPtr + i)))
             {
-                if (check.isInRange(board[i][j]))
+                char temp = *(boardPtr + i);
+                *(boardPtr + i) = bot;
+                int score = minimax(board, 0, false);
+                *(boardPtr + i) = temp;
+                if (score > bestScore)
                 {
-                    char temp = board[i][j];
-                    board[i][j] = bot;
-                    int score = minimax(board, 0, false);
-                    board[i][j] = temp;
-                    if (score > bestScore)
-                    {
-                        bestScore = score;
-                        bestMove = {i, j};
-                    }
+                    bestScore = score;
+                    bestMove = {i / size, i % size};
                 }
             }
         }
         board[bestMove.first][bestMove.second] = bot;
-    }
-};
-
-class Game
-{
-Check check;
-Move move;
-
-private:
-    void initialize()
-    {
-        int position = 49;
-        for (int i = 0; i < size; ++i)
-        {
-            for (int j = 0; j < size; ++j)
-            {
-                board[i][j] = position;
-                position++;
-            }
-        }
-    }
-
-    void print()
-    {
-        for (int i = 0; i < size; ++i)
-        {
-            for (int j = 0; j < size; ++j)
-            {
-                std::cout << "|";
-                std::cout << board[i][j] << "|";
-            }
-            std::cout << std::endl;
-            std::cout << "+-++-++-+" << std::endl;
-        }
     }
 
 public:
@@ -212,7 +182,7 @@ public:
         do
         {
             std::cout << "0. exit" << std::endl;
-            std::cout << "1. single-player" << std::endl;
+            std::cout << "1. play" << std::endl;
             std::cout << "/: ";
             std::cin >> choose;
 
@@ -224,37 +194,51 @@ public:
                 char winner;
                 isOver = false;
 
+                do
+                {
+                    std::cout << "Select one O or X: ";
+                    std::cin >> player;
+
+                    if (player == 'X')
+                    {
+                        bot = 'O';
+                    }
+                    else
+                    {
+                        bot = 'X';
+                    }
+                } while (player != 'O' &&
+                         player != 'X');
+
                 while (!isOver)
                 {
                     bool endTurn = false;
 
-                    if (turn == 'X')
+                    if (turn == bot)
                     {
-                        std::cout << "Player (X) move!" << std::endl;
-                        move.makemove();
+                        std::cout << "Player (" << bot << ") move!" << std::endl;
+                        makemove();
                     }
                     else
                     {
                         char number;
-                        std::cout << "Player (O) move!" << std::endl;
+                        std::cout << "Player (" << player << ") move!" << std::endl;
                         std::cout << "Enter position: ";
                         std::cin >> number;
 
-                        for (int i = 0; i < size; ++i)
+                        for (int i = 0; i < size * size; i++)
                         {
-                            for (int j = 0; j < size; ++j)
+                            if (*(boardPtr + i) == number)
                             {
-                                if (board[i][j] == number)
-                                {
-                                    board[i][j] = player;
-                                    endTurn = true;
-                                    break;
-                                }
-                                else
-                                {
-                                    continue;
-                                }
+                                *(boardPtr + i) = player;
+                                endTurn = true;
+                                break;
                             }
+                            else
+                            {
+                                continue;
+                            }
+
                             if (endTurn)
                             {
                                 break;
@@ -262,22 +246,28 @@ public:
                         }
                     }
 
-                    winner = check.gameOver();
+                    winner = gameOver();
                     turn = (turn == bot) ? player : bot;
 
                     print();
                 }
 
-                if (winner == bot ||
-                    winner == player)
+                if (winner == bot)
                 {
-                    std::cout << winner << " is a winner" << std::endl;
+                    bwin++;
+                    std::cout << winner << " is a winner!" << std::endl;
+                }
+                else if (winner == player)
+                {
+                    pwin++;
+                    std::cout << winner << " is a winner!" << std::endl;
                 }
                 else
                 {
                     std::cout << "draw" << std::endl;
                 }
-                break;
+
+                std::cout << "Player: " << pwin << " - " << "Bot: " << bwin << std::endl;
             }
         } while (choose != 0);
     }
